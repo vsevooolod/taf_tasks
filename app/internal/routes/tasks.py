@@ -13,7 +13,7 @@ router = APIRouter(prefix="/tasks", tags=["Tasks"])
     path="/{user_id:int}/",
     response_model=List[models.Task],
     status_code=status.HTTP_200_OK,
-    description="Read all tasks",
+    description="Read all user tasks",
 )
 @inject
 async def read_all(
@@ -23,46 +23,52 @@ async def read_all(
     return await service.read_all(user_id=user_id)
 
 
+# @router.get(
+#     path="/{user_id:int}/{task_id:int}/",
+# )
+
+
 @router.post(
     path="/{user_id:int}/",
-    response_model=List[models.Task],
-    status_code=status.HTTP_200_OK,
-    description="Create tasks",
+    response_model=models.Task,
+    status_code=status.HTTP_201_CREATED,
+    description="Create user task",
 )
 @inject
 async def create(
         user_id: int,
-        cmds: List[models.CreateTaskCommand],
+        cmd: models.CreateTaskCommand,
         service: Tasks = Depends(Provide[Services.tasks]),
-) -> List[models.Task]:
-    return await service.create(user_id=user_id, cmds=cmds)
+) -> models.Task:
+    return await service.create(user_id=user_id, cmd=cmd)
 
 
 @router.patch(
-    path="/{user_id:int}/",
-    response_model=List[models.Task],
+    path="/{user_id:int}/{task_id:int}/",
+    response_model=models.Task,
     status_code=status.HTTP_200_OK,
-    description="Update tasks",
+    description="Update user task",
 )
 @inject
 async def update(
         user_id: int,
-        cmds: List[models.UpdateTaskCommand],
+        task_id: int,
+        cmd: models.UpdateTaskCommand,
         service: Tasks = Depends(Provide[Services.tasks]),
-) -> List[models.Task]:
-    return await service.update(user_id=user_id, cmds=cmds)
+) -> models.Task:
+    return await service.update(user_id=user_id, task_id=task_id, cmd=cmd)
 
 
 @router.delete(
-    path="/{user_id:int}/",
-    response_model=List[models.Task],
-    status_code=status.HTTP_201_CREATED,
-    description="Delete tasks",
+    path="/{user_id:int}/{task_id:int}/",
+    response_model=models.Task,
+    status_code=status.HTTP_200_OK,
+    description="Delete user task",
 )
 @inject
 async def delete(
         user_id: int,
-        cmds: List[models.DeleteTaskCommand],
+        task_id: int,
         service: Tasks = Depends(Provide[Services.tasks]),
-) -> List[models.Task]:
-    return await service.delete(user_id=user_id, cmds=cmds)
+) -> models.Task:
+    return await service.delete(user_id=user_id, task_id=task_id)

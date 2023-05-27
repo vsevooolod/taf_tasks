@@ -13,36 +13,6 @@ __all__ = [
 
 class Tasks(Repository):
     @collect_response
-    async def create(self, user_id: int, cmds: List[models.CreateTaskCommand]) -> List[models.Task]:
-        params = {"values": []}
-        for cmd in cmds:
-            cmd.user_id = user_id
-            params["values"].append(cmd.to_string())
-        params["values"] = ", ".join(params["values"])
-        q = """
-            insert into tasks(
-                title,
-                description,
-                deadline,
-                user_id,
-                parent_id
-            ) values %(values)s
-            returning
-                id,
-                title,
-                description,
-                deadline,
-                is_done,
-                created_at,
-                updated_at,
-                user_id,
-                parent_id;
-        """
-        async with get_connection() as cur:
-            await cur.execute(q % params)
-            return await cur.fetchall()
-
-    @collect_response
     async def read_all(self, user_id: int) -> List[models.Task]:
         q = """
             select
@@ -57,59 +27,94 @@ class Tasks(Repository):
                 parent_id
             from tasks
             where user_id = %(user_id)s
+              and parent_id is null
             order by deadline, created_at desc;
         """
         async with get_connection() as cur:
-            await cur.execute(q % {"user_id": user_id})
+            await cur.execute(q, {"user_id": user_id})
             return await cur.fetchall()
 
     @collect_response
-    async def update(self, user_id: int, cmds: List[models.UpdateTaskCommand]) -> List[models.Task]:
-        params = {"values": []}
-        for cmd in cmds:
-            cmd.user_id = user_id
-            params["values"].append(cmd.to_string())
-        params["values"] = ", ".join(params["values"])
+    async def read(self, query: Model) -> Model:
+        raise NotImplementedError
+
+    @collect_response
+    async def create(
+            self,
+            user_id: int,
+            cmd: models.CreateTaskCommand,
+    ) -> models.Task:
+        params = cmd.to_dict()
+        params["user_id"] = user_id
         q = """
-            update tasks set 
-                title = tmp.title,
-                description = tmp.description,
-                deadline = tmp.deadline::timestamp,
-                parent_id = tmp.parent_id::int,
-                is_done = tmp.is_done
-            from (values %(values)s) as tmp(
-                id, 
+            insert into tasks(
+                title,
+                description,
+                deadline,
                 user_id,
-                title, 
-                description, 
-                deadline, 
-                parent_id, 
-                is_done
+                parent_id
+            ) values (
+                %(title)s,
+                %(description)s,
+                %(deadline)s,
+                %(user_id)s,
+                %(parent_id)s
             )
-            where tasks.id = tmp.id 
-              and tasks.user_id = tmp.user_id
             returning
-                tasks.id,
-                tasks.title,
-                tasks.description,
-                tasks.deadline,
-                tasks.is_done,
+                id,
+                title,
+                description,
+                deadline,
+                is_done,
                 created_at,
                 updated_at,
-                tasks.user_id,
-                tasks.parent_id;
+                user_id,
+                parent_id;
         """
         async with get_connection() as cur:
-            await cur.execute(q % params)
-            return await cur.fetchall()
+            await cur.execute(q, params)
+            return await cur.fetchone()
 
     @collect_response
-    async def delete(self, user_id: int, cmds: List[models.DeleteTaskCommand]) -> List[models.Task]:
-        params = {"bundles": [f"'{user_id}-{cmd.id}'" for cmd in cmds]}
-        params["bundles"] = ", ".join(params["bundles"])
+    async def update(
+            self,
+            user_id: int,
+            task_id: int,
+            cmd: models.UpdateTaskCommand,
+    ) -> models.Task:
+        params = cmd.to_dict()
+        params["user_id"] = user_id
+        params["task_id"] = task_id
+        q = """
+            update tasks set 
+                title = %(title)s,
+                description = %(description)s,
+                deadline = %(deadline)s::timestamp,
+                parent_id = %(parent_id)s::int,
+                is_done = %(is_done)s
+            where id = %(task_id)s
+              and user_id = %(user_id)s
+            returning
+                id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id;
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, params)
+            return await cur.fetchone()
+
+    @collect_response
+    async def delete(self, user_id: int, task_id: int) -> models.Task:
         q = """
             delete from tasks
-            where user_id::varchar || '-' || id::varchar in (%(bundles)s)
+            where user_id = %(user_id)s 
+              and id = %(task_id)s
             returning 
                 id,
                 title,
@@ -122,8 +127,5 @@ class Tasks(Repository):
                 parent_id;
         """
         async with get_connection() as cur:
-            await cur.execute(q % params)
-            return await cur.fetchall()
-
-    async def read(self, query: Model) -> Model:
-        raise NotImplementedError
+            await cur.execute(q, {"user_id": user_id, "task_id": task_id})
+            return await cur.fetchone()

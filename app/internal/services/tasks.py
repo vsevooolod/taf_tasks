@@ -24,17 +24,20 @@ class Tasks:
         except EmptyResult:
             return []
 
-    async def create(self, user_id: int, cmds: List[models.CreateTaskCommand]) -> List[models.Task]:
-        return await self._tasks.create(user_id=user_id, cmds=cmds)
+    async def create(self, user_id: int, cmd: models.CreateTaskCommand) -> models.Task:
+        return await self._tasks.create(user_id=user_id, cmd=cmd)
 
-    async def update(self, user_id: int, cmds: List[models.UpdateTaskCommand]) -> List[models.Task]:
-        try:
-            return await self._tasks.update(user_id=user_id, cmds=cmds)
-        except EmptyResult:
-            return []
+    async def update(
+            self,
+            user_id: int,
+            task_id: int,
+            cmd: models.UpdateTaskCommand,
+    ) -> models.Task:
+        return await self._tasks.update(
+            user_id=user_id,
+            task_id=task_id,
+            cmd=cmd,
+        )
 
-    async def delete(self, user_id: int, cmds: List[models.DeleteTaskCommand]) -> List[models.Task]:
-        try:
-            return await self._tasks.delete(user_id=user_id, cmds=cmds)
-        except EmptyResult:
-            return []
+    async def delete(self, user_id: int, task_id: int) -> models.Task:
+        return await self._tasks.delete(user_id=user_id, task_id=task_id)
