@@ -1,0 +1,5 @@
+# Ignore
+src/
+
+# Allow directories
+!src/logs/
