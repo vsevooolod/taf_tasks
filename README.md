@@ -14,7 +14,3 @@
 * POST /tags/{user_id:int}/ [Create user tag]
 * PATCH /tags/{user_id:int}/{tag_id:int}/ [Change tag name or color]
 * DELETE /tags/{user_id:int}/{tag_id:int}/ [Delete user tag]
-
-### TODO
-
-* Расширить логику взаимодействия с задачами, добавив возможность навешивания тегов
