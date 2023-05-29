@@ -41,3 +41,9 @@ class Tasks:
 
     async def delete(self, user_id: int, task_id: int) -> models.Task:
         return await self._tasks.delete(user_id=user_id, task_id=task_id)
+
+    async def attach_tag(self, **kwargs) -> models.Tag:
+        return await self._tasks.attach_tag(**kwargs)
+
+    async def detach_tag(self, **kwargs) -> models.Tag:
+        return await self._tasks.detach_tag(**kwargs)

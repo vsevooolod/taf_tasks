@@ -72,3 +72,43 @@ async def delete(
         service: Tasks = Depends(Provide[Services.tasks]),
 ) -> models.Task:
     return await service.delete(user_id=user_id, task_id=task_id)
+
+
+@router.post(
+    path="/{user_id:int}/{task_id:int}/tags/{tag_id:int}/",
+    response_model=models.Tag,
+    status_code=status.HTTP_200_OK,
+    description="Attach tag to task",
+)
+@inject
+async def attach_tag(
+        user_id: int,
+        task_id: int,
+        tag_id: int,
+        service: Tasks = Depends(Provide[Services.tasks]),
+) -> models.Tag:
+    return await service.attach_tag(
+        user_id=user_id,
+        task_id=task_id,
+        tag_id=tag_id,
+    )
+
+
+@router.delete(
+    path="/{user_id:int}/{task_id:int}/tags/{tag_id:int}/",
+    response_model=models.Tag,
+    status_code=status.HTTP_200_OK,
+    description="Detach task tag",
+)
+@inject
+async def detach_tag(
+        user_id: int,
+        task_id: int,
+        tag_id: int,
+        service: Tasks = Depends(Provide[Services.tasks]),
+) -> models.Tag:
+    return await service.detach_tag(
+        user_id=user_id,
+        task_id=task_id,
+        tag_id=tag_id,
+    )

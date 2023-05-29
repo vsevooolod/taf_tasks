@@ -129,3 +129,58 @@ class Tasks(Repository):
         async with get_connection() as cur:
             await cur.execute(q, {"user_id": user_id, "task_id": task_id})
             return await cur.fetchone()
+
+    @collect_response
+    async def attach_tag(
+            self,
+            user_id: int,
+            task_id: int,
+            tag_id: int,
+    ) -> models.Tag:
+        q = """
+            insert into tags_on_tasks (tag_id, task_id)
+            select %(tag_id)s, %(task_id)s from tasks
+            where tasks.id = %(task_id)s
+              and tasks.user_id = %(user_id)s
+            on conflict (tag_id, task_id) do update set
+              tag_id = excluded.tag_id,
+              task_id = excluded.task_id
+            returning
+                (select id from tags where id = %(tag_id)s),
+                (select name from tags where id = %(tag_id)s),
+                (select color from tags where id = %(tag_id)s);
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, {
+                "user_id": user_id,
+                "task_id": task_id,
+                "tag_id": tag_id,
+            })
+            return await cur.fetchone()
+
+    @collect_response
+    async def detach_tag(
+            self,
+            user_id: int,
+            task_id: int,
+            tag_id: int,
+    ) -> models.Tag:
+        q = """
+            delete from tags_on_tasks
+            using tasks
+            where task_id = %(task_id)s 
+              and tag_id = %(tag_id)s
+              and tasks.id = %(task_id)s
+              and tasks.user_id = %(user_id)s
+            returning 
+                (select id from tags where id = %(tag_id)s),
+                (select name from tags where id = %(tag_id)s),
+                (select color from tags where id = %(tag_id)s);
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, {
+                "user_id": user_id,
+                "task_id": task_id,
+                "tag_id": tag_id,
+            })
+            return await cur.fetchone()

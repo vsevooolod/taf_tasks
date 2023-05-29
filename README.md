@@ -3,8 +3,10 @@
 * GET /tasks/{user_id:int}/ [Read all user tasks]
 * GET /tasks/{user_id:int}/{task_id:int}/ [Retrieve user task]
 * POST /tasks/{user_id:int}/ [Create user task]
+* POST /tasks/{user_id:int}/{task_id:int}/tags/{tag_id:int}/ [Add task tag]
 * PATCH /tasks/{user_id:int}/{task_id:int}/ [Update user task]
 * DELETE /tasks/{user_id:int}/{task_id:int}/ [Delete user task]
+* DELETE /tasks/{user_id:int}/{task_id:int}/tags/{tag_id:int}/ [Remove task tag]
 
 ### Tags
 
