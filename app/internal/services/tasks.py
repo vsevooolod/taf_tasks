@@ -24,20 +24,19 @@ class Tasks:
         except EmptyResult:
             return []
 
+    async def read(self, user_id: int, task_id: int) -> models.ExtendedTask:
+        task = await self._tasks.read(user_id=user_id, task_id=task_id)
+        try:
+            children = await self._tasks.read_all_children(user_id=user_id, task_id=task_id)
+        except EmptyResult:
+            children = []
+        return models.ExtendedTask(**task.to_dict(), children=children)
+
     async def create(self, user_id: int, cmd: models.CreateTaskCommand) -> models.Task:
         return await self._tasks.create(user_id=user_id, cmd=cmd)
 
-    async def update(
-            self,
-            user_id: int,
-            task_id: int,
-            cmd: models.UpdateTaskCommand,
-    ) -> models.Task:
-        return await self._tasks.update(
-            user_id=user_id,
-            task_id=task_id,
-            cmd=cmd,
-        )
+    async def update(self, user_id: int, task_id: int, cmd: models.UpdateTaskCommand) -> models.Task:
+        return await self._tasks.update(user_id=user_id, task_id=task_id, cmd=cmd)
 
     async def delete(self, user_id: int, task_id: int) -> models.Task:
         return await self._tasks.delete(user_id=user_id, task_id=task_id)

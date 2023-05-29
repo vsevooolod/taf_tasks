@@ -1,6 +1,5 @@
 from typing import List
 
-from app.pkg.models.base import Model
 from app.internal.repositories.postgres.handlers.collect_response import collect_response
 from app.internal.repositories.repository import Repository
 from .connection import get_connection
@@ -16,7 +15,26 @@ class Tasks(Repository):
     async def read_all(self, user_id: int) -> List[models.Task]:
         q = """
             select
-                id,
+                tasks.id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id,
+                json_agg(json_strip_nulls(json_build_object(
+                    'id', t.id,
+                    'name', t.name,
+                    'color', t.color
+                ))) as tags
+            from tasks
+            full join tags_on_tasks tot on tasks.id = tot.task_id
+            full join tags t on tot.tag_id = t.id
+            where user_id = %(user_id)s and parent_id is null
+            group by
+                tasks.id,
                 title,
                 description,
                 deadline,
@@ -25,9 +43,6 @@ class Tasks(Repository):
                 updated_at,
                 user_id,
                 parent_id
-            from tasks
-            where user_id = %(user_id)s
-              and parent_id is null
             order by deadline, created_at desc;
         """
         async with get_connection() as cur:
@@ -35,8 +50,80 @@ class Tasks(Repository):
             return await cur.fetchall()
 
     @collect_response
-    async def read(self, query: Model) -> Model:
-        raise NotImplementedError
+    async def read(self, user_id: int, task_id: int) -> models.Task:
+        q = """
+            select
+                tasks.id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id,
+                json_agg(json_strip_nulls(json_build_object(
+                    'id', t.id,
+                    'name', t.name,
+                    'color', t.color
+                ))) as tags
+            from tasks
+            full join tags_on_tasks tot on tasks.id = tot.task_id
+            full join tags t on tot.tag_id = t.id
+            where user_id = %(user_id)s and tasks.id = %(task_id)s
+            group by
+                tasks.id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id
+            order by deadline, created_at desc;
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, {"user_id": user_id, "task_id": task_id})
+            return await cur.fetchone()
+
+    @collect_response
+    async def read_all_children(self, user_id: int, task_id: int) -> List[models.Task]:
+        q = """
+            select
+                tasks.id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id,
+                json_agg(json_strip_nulls(json_build_object(
+                    'id', t.id,
+                    'name', t.name,
+                    'color', t.color
+                ))) as tags
+            from tasks
+            full join tags_on_tasks tot on tasks.id = tot.task_id
+            full join tags t on tot.tag_id = t.id
+            where user_id = %(user_id)s and parent_id = %(task_id)s
+            group by
+                tasks.id,
+                title,
+                description,
+                deadline,
+                is_done,
+                created_at,
+                updated_at,
+                user_id,
+                parent_id
+            order by deadline, created_at desc;
+        """
+        async with get_connection() as cur:
+            await cur.execute(q, {"user_id": user_id, "task_id": task_id})
+            return await cur.fetchall()
 
     @collect_response
     async def create(
@@ -69,7 +156,8 @@ class Tasks(Repository):
                 created_at,
                 updated_at,
                 user_id,
-                parent_id;
+                parent_id,
+                '[]'::json as tags;
         """
         async with get_connection() as cur:
             await cur.execute(q, params)
@@ -92,8 +180,7 @@ class Tasks(Repository):
                 deadline = %(deadline)s::timestamp,
                 parent_id = %(parent_id)s::int,
                 is_done = %(is_done)s
-            where id = %(task_id)s
-              and user_id = %(user_id)s
+            where id = %(task_id)s and user_id = %(user_id)s
             returning
                 id,
                 title,
@@ -103,7 +190,17 @@ class Tasks(Repository):
                 created_at,
                 updated_at,
                 user_id,
-                parent_id;
+                parent_id,
+                (select
+                    json_agg(json_strip_nulls(json_build_object(
+                        'id', t.id,
+                        'name', t.name,
+                        'color', t.color
+                    )))
+                from tags t
+                full join tags_on_tasks tot on t.id = tot.tag_id
+                group by tot.task_id
+                ) as tags;
         """
         async with get_connection() as cur:
             await cur.execute(q, params)
@@ -124,7 +221,17 @@ class Tasks(Repository):
                 created_at,
                 updated_at,
                 user_id,
-                parent_id;
+                parent_id,
+                (select
+                    json_agg(json_strip_nulls(json_build_object(
+                        'id', t.id,
+                        'name', t.name,
+                        'color', t.color
+                    )))
+                from tags t
+                full join tags_on_tasks tot on t.id = tot.tag_id
+                group by tot.task_id
+                ) as tags;
         """
         async with get_connection() as cur:
             await cur.execute(q, {"user_id": user_id, "task_id": task_id})

@@ -23,9 +23,19 @@ async def read_all(
     return await service.read_all(user_id=user_id)
 
 
-# @router.get(
-#     path="/{user_id:int}/{task_id:int}/",
-# )
+@router.get(
+    path="/{user_id:int}/{task_id:int}/",
+    response_model=models.ExtendedTask,
+    status_code=status.HTTP_200_OK,
+    description="Retrieve task with children",
+)
+@inject
+async def read(
+        user_id: int,
+        task_id: int,
+        service: Tasks = Depends(Provide[Services.tasks]),
+) -> models.ExtendedTask:
+    return await service.read(user_id=user_id, task_id=task_id)
 
 
 @router.post(
